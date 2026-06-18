@@ -1,0 +1,7 @@
+{
+  "name": "sg-sme",
+  "description": "Singapore SME guardrails for Claude: SG GST/IRAS rules, cash-flow and customer-reply safety, plus the Xero connector. The eval-backed alternative to the US small-business plugin.",
+  "version": "0.1.0",
+  "author": { "name": "Lobang Scout" },
+  "keywords": ["singapore", "sme", "gst", "iras", "xero", "accounting", "guardrails"]
+}

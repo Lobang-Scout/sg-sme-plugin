@@ -1,0 +1,11 @@
+{
+  "name": "sg-sme-marketplace",
+  "owner": { "name": "lobang-scout" },
+  "plugins": [
+    {
+      "name": "sg-sme",
+      "source": ".",
+      "description": "Singapore SME guardrails (GST/IRAS, cash-flow, customer replies) + Xero connector for Claude."
+    }
+  ]
+}
