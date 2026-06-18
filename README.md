@@ -41,6 +41,12 @@ Notes:
 - Confirm the `xero-mcp-server` package/command for your environment; adjust `.mcp.json` `command`/`args` if your install differs.
 - The connector is **read/reason only** for statutory work — it (and no MCP) can file the GST F5. Filing stays in **Xero (ASR+)** or the **myTax Portal** via CorpPass.
 
+## Works with any LLM
+The guardrails are plain instructions — not Claude-specific magic — so the core value is portable:
+- **Any chat LLM** (Claude, GPT, Gemini, Llama, local): paste **`prompts/sg-sme-guardrails.md`** as the system prompt / context, then your CSV export or message thread.
+- **Any MCP-capable client:** the Xero connector in `.mcp.json` uses the open **Model Context Protocol** — point any MCP client at the same `xero-mcp-server` to pull live data.
+- **Claude Code:** install as a plugin (above) for auto-triggered skills.
+
 ## Honest scope
 Guardrails reduce risk; they don't make an LLM deterministic. For the *filed* number, use Xero. Use
 this plugin for the thinking, drafting, and a safe first-pass GST close.
