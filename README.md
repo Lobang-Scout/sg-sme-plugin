@@ -15,7 +15,10 @@ drafts. This guardrail layer cut catastrophic GST errors to **0%** and unauthori
 - **skills/sg-gst-close** — SG GST F5 close: 9% output/input tax, import GST via Customs permit (not off the invoice), Box 14 only for RC businesses, verify-the-total guardrail, "can't file — Xero/myTax does."
 - **skills/sg-cash-flow** — cash-flow snapshot: verify totals, no AP double-counting, no invented confidence bands, SG payment timing (PayNow/NETS).
 - **skills/sg-customer-reply** — complaint drafting: owner-gate every refund/instalment/credit, redirect platform disputes, PDPA-aware.
-- **.mcp.json** — the official **Xero** connector (live-confirmed to return SGD + GST 9% from an SG org).
+- **.mcp.json** — three connectors:
+  - the official **Xero** connector (live-confirmed to return SGD + GST 9% from an SG org);
+  - **sg-company-lookup** — free ACRA company/UEN lookup ([sg-connectors](https://github.com/Lobang-Scout/sg-connectors));
+  - **sg-onemap** — free Singapore address / postal-code lookup (OneMap).
 
 ## Install
 
@@ -31,15 +34,24 @@ drafts. This guardrail layer cut catastrophic GST errors to **0%** and unauthori
 /plugin install sg-sme@sg-sme-marketplace
 ```
 
-## Xero connector setup
-The connector needs a Xero app's credentials. Set them before launching Claude:
+## Connector setup
+
+**Xero** — needs a Xero app's credentials. Set them before launching Claude:
 ```
 export XERO_CLIENT_ID=...
 export XERO_CLIENT_SECRET=...
 ```
-Notes:
 - Confirm the `xero-mcp-server` package/command for your environment; adjust `.mcp.json` `command`/`args` if your install differs.
-- The connector is **read/reason only** for statutory work — it (and no MCP) can file the GST F5. Filing stays in **Xero (ASR+)** or the **myTax Portal** via CorpPass.
+- Read/reason only for statutory work — it (and no MCP) can file the GST F5. Filing stays in **Xero (ASR+)** or the **myTax Portal** via CorpPass.
+
+**sg-company-lookup / sg-onemap** — free, no credentials required. They run via
+[`uv`](https://docs.astral.sh/uv) (`uvx`), so install `uv` once:
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+Optional, to raise rate limits: `export DATAGOV_API_KEY=...` (data.gov.sg) and/or
+`export ONEMAP_TOKEN=...` (OneMap). Both work without these. Source and honest scope:
+[github.com/Lobang-Scout/sg-connectors](https://github.com/Lobang-Scout/sg-connectors).
 
 ## Works with any LLM
 The guardrails are plain instructions — not Claude-specific magic — so the core value is portable:

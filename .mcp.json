@@ -7,6 +7,20 @@
         "XERO_CLIENT_ID": "${XERO_CLIENT_ID}",
         "XERO_CLIENT_SECRET": "${XERO_CLIENT_SECRET}"
       }
+    },
+    "sg-company-lookup": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/Lobang-Scout/sg-connectors", "sg-company-lookup"],
+      "env": {
+        "DATAGOV_API_KEY": "${DATAGOV_API_KEY}"
+      }
+    },
+    "sg-onemap": {
+      "command": "uvx",
+      "args": ["--from", "git+https://github.com/Lobang-Scout/sg-connectors", "sg-onemap"],
+      "env": {
+        "ONEMAP_TOKEN": "${ONEMAP_TOKEN}"
+      }
     }
   }
 }
