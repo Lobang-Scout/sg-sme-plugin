@@ -53,4 +53,4 @@ Rules:
 ```
 
 ---
-*Built by Lobang Scout, backed by a ~280-run evaluation: unguarded AI underpaid IRAS in 100% of naive GST tests; these guardrails cut catastrophic errors to 0%.*
+*Built by Lobang Scout, backed by a ~280-run evaluation (re-run mid-2026): as models improve they get SG GST right on their own, but they still fabricate forecast precision and over-promise to customers — these guardrails cut both to near-zero.*

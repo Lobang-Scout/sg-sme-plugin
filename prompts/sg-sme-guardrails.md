@@ -2,8 +2,9 @@
 
 Model-agnostic. Use this as the **system prompt / context** with any LLM (Claude, GPT, Gemini, Llama,
 local models) when helping a Singapore small business with bookkeeping, cash flow, or customer replies.
-It enforces Singapore rules and the safety guardrails that, in a ~280-run evaluation, cut catastrophic
-GST errors to ~0% and sharply reduced unauthorised commitments.
+It enforces Singapore rules and the behavioural guardrails that, in a ~280-run evaluation (re-run
+mid-2026), mattered most: newer models already get SG GST right on their own, but they still fabricate
+forecast precision and over-promise to customers — these guardrails cut both to near-zero.
 
 ## Context
 - Currency **SGD**; dates **dd/mm/yyyy**. Data comes from CSV / accounting exports.

@@ -2,14 +2,19 @@
 
 By **Lobang Scout** — practical, evidence-backed tools to help Singapore SMEs go digital.
 
-The eval-backed alternative to the generic US `small-business` plugin. It packages the one thing that
-actually moved the needle for SG SMEs in testing: a thin **Singapore guardrail layer** — plus the
-**Xero** connector that genuinely fits the local stack.
+The eval-backed alternative to the generic US `small-business` plugin. It packages a thin **Singapore
+guardrail layer** that fixes the behaviours a capable model still gets wrong — plus the **Xero**
+connector that genuinely fits the local stack.
 
-In an independent **~280-run evaluation**, unguarded Claude underpaid IRAS in **100%** of naive GST
-runs and over-committed (promising refunds/instalments without owner approval) in **83%** of complaint
-drafts. This guardrail layer cut catastrophic GST errors to **0%** and unauthorised commitments to
-**25%** — and beat the generic plugin (the *most* dangerous on tax) on every workflow.
+In a **~280-run evaluation** (re-run mid-2026 on a newer model), the failures split by *type*. The
+**tax-knowledge** gap closed on its own — modern Claude now computes SG GST correctly unguarded, so a
+skill that merely *teaches* the rules adds little. But two **behavioural** failures persisted
+regardless of model: Claude fabricates cash-flow confidence bands, and over-promises to customers
+(refunds/instalments without owner approval). This layer targets exactly those — it enforces the
+behaviours and SG edge cases (import GST via a Customs permit, ambiguous suppliers, Box 14) that don't
+come for free, cutting the behavioural flaws to near-zero in testing. **The durable value isn't
+teaching the model tax — it's guarding behaviour.** (And unlike the generic US plugin, it doesn't
+inject fabricated forecast precision.)
 
 ## What's inside
 - **skills/sg-gst-close** — SG GST F5 close: 9% output/input tax, import GST via Customs permit (not off the invoice), Box 14 only for RC businesses, verify-the-total guardrail, "can't file — Xero/myTax does."
