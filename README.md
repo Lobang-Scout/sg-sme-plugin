@@ -12,10 +12,28 @@ drafts. This guardrail layer cut catastrophic GST errors to **0%** and unauthori
 **25%** — and beat the generic plugin (the *most* dangerous on tax) on every workflow.
 
 ## What's inside
-- **skills/sg-gst-close** — SG GST F5 close: 9% output/input tax, import GST via Customs permit (not off the invoice), Box 14 only for RC businesses, verify-the-total guardrail, "can't file — Xero/myTax does."
-- **skills/sg-cash-flow** — cash-flow snapshot: verify totals, no AP double-counting, no invented confidence bands, SG payment timing (PayNow/NETS).
-- **skills/sg-customer-reply** — complaint drafting: owner-gate every refund/instalment/credit, redirect platform disputes, PDPA-aware.
-- **.mcp.json** — the official **Xero** connector (live-confirmed to return SGD + GST 9% from an SG org).
+
+Four skills. Every statutory figure is sourced from IRAS, CPF Board, PDPC or IMDA, dated, and
+carries an explicit list of what it does **not** cover, so the model stops instead of improvising
+on tax treatment nobody verified.
+
+- **skills/sg-gst-close** · GST F5 close. 9% output and input tax, import GST claimed from the
+  Customs permit and not off the supplier invoice, Box 14 only for RC businesses, both compulsory
+  registration tests (30 days to apply, two months before you charge), filing deadline and
+  penalties, and the verify-the-total guardrail. States plainly that it cannot file.
+- **skills/sg-invoicenow** · the GST InvoiceNow (Peppol) mandate. Who is caught and when, the two
+  onboarding paths, and the fact that matters most: onboarding takes **3 to 12 months**, so the
+  date to act on is the mandate date minus a year. Never guesses a specific business's date.
+- **skills/sg-cash-flow** · cash-flow snapshot. Surfaces the two commitments that make a bank
+  balance misleading, GST held for IRAS and CPF due monthly, then rails, receivables ageing and
+  runway. Verify totals, no double-counting, no invented confidence.
+- **skills/sg-customer-reply** · complaint drafting. Owner-gates every refund, credit, instalment,
+  free redo, delivery date and admission of fault, and outputs those as decisions for the owner
+  rather than promises to the customer. PDPA rules for reply text; platform disputes go back
+  through the platform.
+- **.mcp.json** · the official **Xero** connector (live-confirmed to return SGD and GST 9% from an
+  SG org). Note the limit found in testing: it **cannot file the F5**, because statutory filing is
+  not in its tool surface.
 
 ## Install
 
