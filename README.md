@@ -2,46 +2,51 @@
 
 By **Lobang Scout** — practical, evidence-backed tools to help Singapore SMEs go digital.
 
-The eval-backed alternative to the generic US `small-business` plugin. It packages the one thing that
-actually moved the needle for SG SMEs in testing: a thin **Singapore guardrail layer** — plus the
-**Xero** connector that genuinely fits the local stack.
+The eval-backed alternative to the generic US `small-business` plugin. It packages a thin **Singapore
+guardrail layer** that fixes the behaviours a capable model still gets wrong — plus the **Xero**
+connector that genuinely fits the local stack.
 
-In an independent **~280-run evaluation**, unguarded Claude underpaid IRAS in **100%** of naive GST
-runs and over-committed (promising refunds/instalments without owner approval) in **83%** of complaint
-drafts. This guardrail layer cut catastrophic GST errors to **0%** and unauthorised commitments to
-**25%** — and beat the generic plugin (the *most* dangerous on tax) on every workflow.
+In a **~280-run evaluation** (re-run mid-2026 on a newer model), the failures split by *type*. The
+**tax-knowledge** gap closed on its own — modern Claude now computes SG GST correctly unguarded, so a
+skill that merely *teaches* the rules adds little. But two **behavioural** failures persisted
+regardless of model: Claude fabricates cash-flow confidence bands, and over-promises to customers
+(refunds/instalments without owner approval). This layer targets exactly those — it enforces the
+behaviours and SG edge cases (import GST via a Customs permit, ambiguous suppliers, Box 14) that don't
+come for free, cutting the behavioural flaws to near-zero in testing. **The durable value isn't
+teaching the model tax — it's guarding behaviour.** (And unlike the generic US plugin, it doesn't
+inject fabricated forecast precision.)
 
 ## What's inside
 
-Five skills. Every statutory figure is sourced from IRAS, CPF Board, PDPC or IMDA, dated, and
-carries an explicit list of what it does **not** cover, so the model stops instead of improvising
-on tax treatment nobody verified.
+Five skills. The behavioural guardrails are the durable part; the statutory detail is there for
+the SG edge cases a capable model still gets wrong, and every figure in it is sourced, dated, and
+self-reports when it may be out of date (see **Freshness** below).
 
-**Start with `sg-shoebox` if the business has no accounting software.** Most Singapore SMEs run a
-cash register, a NETS terminal, a notebook and WhatsApp. The other four skills assume a clean
-export; that skill assumes a photo of the book.
+- **skills/sg-shoebox** — start here when the business has no accounting software. Works from a
+  photo of a handwritten ledger, a cash register Z-reading, a NETS settlement slip, WhatsApp
+  supplier threads or a bank screenshot. The other skills assume a clean export; most Singapore
+  SMEs do not have one. Handles two things generic tools get wrong: informal credit tabs are not
+  invoices, and a sole proprietor pays MediSave rather than CPF on themselves.
+- **skills/sg-gst-close** — SG GST F5 close: 9% output/input tax, import GST via Customs permit (not off the invoice), Box 14 only for RC businesses, verify-the-total guardrail, "can't file — Xero/myTax does."
+- **skills/sg-invoicenow** — the GST InvoiceNow (Peppol) mandate: who is caught and when, the two
+  onboarding paths, and the planning fact that onboarding takes 3 to 12 months, so the date to act
+  on is the mandate date minus a year. Never guesses a specific business's date.
+- **skills/sg-cash-flow** — cash-flow snapshot: verify totals, no AP double-counting, no invented confidence bands, SG payment timing (PayNow/NETS).
+- **skills/sg-customer-reply** — complaint drafting: owner-gate every refund/instalment/credit, redirect platform disputes, PDPA-aware.
+- **.mcp.json** — three connectors:
+  - the official **Xero** connector (live-confirmed to return SGD + GST 9% from an SG org);
+  - **sg-company-lookup** — free ACRA company/UEN lookup ([sg-connectors](https://github.com/Lobang-Scout/sg-connectors));
+  - **sg-onemap** — free Singapore address / postal-code lookup (OneMap).
 
-- **skills/sg-shoebox** · the entry path when there is no export. Works from a photo of a
-  handwritten ledger, a cash register Z-reading, a NETS settlement slip, WhatsApp supplier
-  threads or a bank screenshot. Handles two things generic tools get wrong in Singapore: informal
-  credit tabs are not invoices, and a sole proprietor pays MediSave rather than CPF on themselves.
-- **skills/sg-gst-close** · GST F5 close. 9% output and input tax, import GST claimed from the
-  Customs permit and not off the supplier invoice, Box 14 only for RC businesses, both compulsory
-  registration tests (30 days to apply, two months before you charge), filing deadline and
-  penalties, and the verify-the-total guardrail. States plainly that it cannot file.
-- **skills/sg-invoicenow** · the GST InvoiceNow (Peppol) mandate. Who is caught and when, the two
-  onboarding paths, and the fact that matters most: onboarding takes **3 to 12 months**, so the
-  date to act on is the mandate date minus a year. Never guesses a specific business's date.
-- **skills/sg-cash-flow** · cash-flow snapshot. Surfaces the two commitments that make a bank
-  balance misleading, GST held for IRAS and CPF due monthly, then rails, receivables ageing and
-  runway. Verify totals, no double-counting, no invented confidence.
-- **skills/sg-customer-reply** · complaint drafting. Owner-gates every refund, credit, instalment,
-  free redo, delivery date and admission of fault, and outputs those as decisions for the owner
-  rather than promises to the customer. PDPA rules for reply text; platform disputes go back
-  through the platform.
-- **.mcp.json** · the official **Xero** connector (live-confirmed to return SGD and GST 9% from an
-  SG org). Note the limit found in testing: it **cannot file the F5**, because statutory filing is
-  not in its tool surface.
+## Freshness
+
+Statutory figures go stale, which is why this plugin does not rely on you noticing. Every skill
+carries its verification date and the changes already scheduled (CPF rates move 1 Jan 2027;
+InvoiceNow phases run to April 2031), and instructs the model to **say so before quoting a number**
+once that date is well past, then point at the primary source.
+
+Figures are sourced from IRAS, CPF Board, PDPC and IMDA directly, and each skill names what it
+does **not** cover so it stops rather than improvising on treatment nobody verified.
 
 ## Install
 
@@ -57,15 +62,24 @@ export; that skill assumes a photo of the book.
 /plugin install sg-sme@sg-sme-marketplace
 ```
 
-## Xero connector setup
-The connector needs a Xero app's credentials. Set them before launching Claude:
+## Connector setup
+
+**Xero** — needs a Xero app's credentials. Set them before launching Claude:
 ```
 export XERO_CLIENT_ID=...
 export XERO_CLIENT_SECRET=...
 ```
-Notes:
 - Confirm the `xero-mcp-server` package/command for your environment; adjust `.mcp.json` `command`/`args` if your install differs.
-- The connector is **read/reason only** for statutory work — it (and no MCP) can file the GST F5. Filing stays in **Xero (ASR+)** or the **myTax Portal** via CorpPass.
+- Read/reason only for statutory work — it (and no MCP) can file the GST F5. Filing stays in **Xero (ASR+)** or the **myTax Portal** via CorpPass.
+
+**sg-company-lookup / sg-onemap** — free, no credentials required. They run via
+[`uv`](https://docs.astral.sh/uv) (`uvx`), so install `uv` once:
+```
+curl -LsSf https://astral.sh/uv/install.sh | sh
+```
+Optional, to raise rate limits: `export DATAGOV_API_KEY=...` (data.gov.sg) and/or
+`export ONEMAP_TOKEN=...` (OneMap). Both work without these. Source and honest scope:
+[github.com/Lobang-Scout/sg-connectors](https://github.com/Lobang-Scout/sg-connectors).
 
 ## Works with any LLM
 The guardrails are plain instructions — not Claude-specific magic — so the core value is portable:
