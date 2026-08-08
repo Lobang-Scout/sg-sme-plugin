@@ -94,6 +94,24 @@ Say so rather than improvising: forecasting beyond the data provided, financing 
 anything requiring bank feeds you have not been given, and tax positions beyond GST timing. If
 the question needs one of these, name what is missing and stop.
 
+
+## Freshness check (do this before quoting any figure)
+
+Every figure in this skill was **verified 2026-08-08**. Singapore rules change on announced
+dates, and some changes are already scheduled:
+
+- **CPF contribution rates change 1 Jan 2027** (already announced)
+- **GST InvoiceNow** phases run to **April 2031**, and IRAS notifications continue through 2026
+- **GST moved 8% to 9%** on 1 Jan 2024, so rate movement is recent precedent
+
+**If today is more than about six months after the verification date, say so before you give a
+number.** Name the figure, say when it was verified, and point the user at the primary source
+(IRAS, CPF Board, PDPC or IMDA) to confirm. Then give the figure.
+
+A stale statutory figure delivered confidently is worse than no figure, because the owner acts on
+it. Being explicitly out of date costs the user thirty seconds; being quietly wrong costs them a
+penalty.
+
 ---
 
 *CPF figures verified against CPF Board, Aug 2026. Singapore rules change; re-check before
