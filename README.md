@@ -13,10 +13,18 @@ drafts. This guardrail layer cut catastrophic GST errors to **0%** and unauthori
 
 ## What's inside
 
-Four skills. Every statutory figure is sourced from IRAS, CPF Board, PDPC or IMDA, dated, and
+Five skills. Every statutory figure is sourced from IRAS, CPF Board, PDPC or IMDA, dated, and
 carries an explicit list of what it does **not** cover, so the model stops instead of improvising
 on tax treatment nobody verified.
 
+**Start with `sg-shoebox` if the business has no accounting software.** Most Singapore SMEs run a
+cash register, a NETS terminal, a notebook and WhatsApp. The other four skills assume a clean
+export; that skill assumes a photo of the book.
+
+- **skills/sg-shoebox** · the entry path when there is no export. Works from a photo of a
+  handwritten ledger, a cash register Z-reading, a NETS settlement slip, WhatsApp supplier
+  threads or a bank screenshot. Handles two things generic tools get wrong in Singapore: informal
+  credit tabs are not invoices, and a sole proprietor pays MediSave rather than CPF on themselves.
 - **skills/sg-gst-close** · GST F5 close. 9% output and input tax, import GST claimed from the
   Customs permit and not off the supplier invoice, Box 14 only for RC businesses, both compulsory
   registration tests (30 days to apply, two months before you charge), filing deadline and
