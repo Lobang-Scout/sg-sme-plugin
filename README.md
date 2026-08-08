@@ -17,13 +17,36 @@ teaching the model tax — it's guarding behaviour.** (And unlike the generic US
 inject fabricated forecast precision.)
 
 ## What's inside
+
+Five skills. The behavioural guardrails are the durable part; the statutory detail is there for
+the SG edge cases a capable model still gets wrong, and every figure in it is sourced, dated, and
+self-reports when it may be out of date (see **Freshness** below).
+
+- **skills/sg-shoebox** — start here when the business has no accounting software. Works from a
+  photo of a handwritten ledger, a cash register Z-reading, a NETS settlement slip, WhatsApp
+  supplier threads or a bank screenshot. The other skills assume a clean export; most Singapore
+  SMEs do not have one. Handles two things generic tools get wrong: informal credit tabs are not
+  invoices, and a sole proprietor pays MediSave rather than CPF on themselves.
 - **skills/sg-gst-close** — SG GST F5 close: 9% output/input tax, import GST via Customs permit (not off the invoice), Box 14 only for RC businesses, verify-the-total guardrail, "can't file — Xero/myTax does."
+- **skills/sg-invoicenow** — the GST InvoiceNow (Peppol) mandate: who is caught and when, the two
+  onboarding paths, and the planning fact that onboarding takes 3 to 12 months, so the date to act
+  on is the mandate date minus a year. Never guesses a specific business's date.
 - **skills/sg-cash-flow** — cash-flow snapshot: verify totals, no AP double-counting, no invented confidence bands, SG payment timing (PayNow/NETS).
 - **skills/sg-customer-reply** — complaint drafting: owner-gate every refund/instalment/credit, redirect platform disputes, PDPA-aware.
 - **.mcp.json** — three connectors:
   - the official **Xero** connector (live-confirmed to return SGD + GST 9% from an SG org);
   - **sg-company-lookup** — free ACRA company/UEN lookup ([sg-connectors](https://github.com/Lobang-Scout/sg-connectors));
   - **sg-onemap** — free Singapore address / postal-code lookup (OneMap).
+
+## Freshness
+
+Statutory figures go stale, which is why this plugin does not rely on you noticing. Every skill
+carries its verification date and the changes already scheduled (CPF rates move 1 Jan 2027;
+InvoiceNow phases run to April 2031), and instructs the model to **say so before quoting a number**
+once that date is well past, then point at the primary source.
+
+Figures are sourced from IRAS, CPF Board, PDPC and IMDA directly, and each skill names what it
+does **not** cover so it stops rather than improvising on treatment nobody verified.
 
 ## Install
 
