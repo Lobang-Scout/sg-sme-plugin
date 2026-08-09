@@ -1,7 +1,25 @@
 {
   "name": "sg-sme",
-  "description": "Singapore SME guardrails for Claude: SG GST/IRAS rules, cash-flow and customer-reply safety, plus the Xero connector. The eval-backed alternative to the US small-business plugin.",
-  "version": "0.1.0",
-  "author": { "name": "Lobang Scout" },
-  "keywords": ["singapore", "sme", "gst", "iras", "xero", "accounting", "guardrails"]
+  "description": "Singapore SME guardrails for Claude. Five skills: start from paper or photos when there is no accounting export, GST F5 close, the GST InvoiceNow (Peppol) mandate and its timeline, cash-flow with GST and CPF surfaced, and customer replies that never commit the owner without approval. Plus free ACRA and OneMap lookups and the Xero connector.",
+  "version": "0.2.0",
+  "author": {
+    "name": "Lobang Scout"
+  },
+  "keywords": [
+    "singapore",
+    "sme",
+    "gst",
+    "iras",
+    "invoicenow",
+    "peppol",
+    "e-invoicing",
+    "cpf",
+    "medisave",
+    "acra",
+    "xero",
+    "accounting",
+    "bookkeeping",
+    "small-business",
+    "guardrails"
+  ]
 }

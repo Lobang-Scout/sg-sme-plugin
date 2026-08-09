@@ -50,7 +50,11 @@ does **not** cover so it stops rather than improvising on treatment nobody verif
 
 ## Install
 
-**From GitHub:**
+**No terminal needed.** In Claude (including Cowork): open **Customize** in the left sidebar, go to
+the **Plugins** tab, click **Browse plugins**, add this repo as a marketplace, then **Install**.
+Skills then fire automatically, or you can invoke one with `/` or the `+` button.
+
+**In Claude Code**, if you prefer the command line:
 ```
 /plugin marketplace add lobang-scout/sg-sme-plugin
 /plugin install sg-sme@sg-sme-marketplace
