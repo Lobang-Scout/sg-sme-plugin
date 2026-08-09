@@ -2,6 +2,10 @@
 
 By **Lobang Scout** — practical, evidence-backed tools to help Singapore SMEs go digital.
 
+> ### 👉 Not technical? Read [**START-HERE.md**](START-HERE.md) instead.
+> It explains this in plain language, and shows you a copy-paste option that needs **no install
+> at all**. The rest of this page is written for people evaluating the plugin.
+
 The eval-backed alternative to the generic US `small-business` plugin. It packages a thin **Singapore
 guardrail layer** that fixes the behaviours a capable model still gets wrong — plus the **Xero**
 connector that genuinely fits the local stack.
@@ -53,6 +57,10 @@ does **not** cover so it stops rather than improvising on treatment nobody verif
 **No terminal needed.** In Claude (including Cowork): open **Customize** in the left sidebar, go to
 the **Plugins** tab, click **Browse plugins**, add this repo as a marketplace, then **Install**.
 Skills then fire automatically, or you can invoke one with `/` or the `+` button.
+
+Step-by-step with screenshots-worth-of-detail, written for a non-technical owner:
+[**START-HERE.md**](START-HERE.md). If any step there fails, the copy-paste route in
+[RECIPES.md](RECIPES.md) does the same thinking with no install.
 
 **In Claude Code**, if you prefer the command line:
 ```
