@@ -84,10 +84,15 @@ These exist because measured runs failed without them.
 
 1. **Verify the revenue total.** Independently re-sum the line items and state the exact figure.
    Never let an unverified total flow into a GST number.
-2. **Flag unknowns** rather than assuming. Landlord and vendor GST status, ambiguous rows,
+2. **Check the period is complete before you close it.** Read the first and last transaction date
+   actually present in the input and compare them to the accounting period being closed. In
+   testing, a truncated month was closed as if it were a full one, which understates output GST
+   and produces an F5 figure the owner would file. If the data stops short, say the exact range it
+   covers, say what is missing, and do not present the result as a closed period.
+3. **Flag unknowns** rather than assuming. Landlord and vendor GST status, ambiguous rows,
    anything you inferred.
-3. **No invented precision.** No fabricated confidence bands or percentages.
-4. **You cannot file the F5.** The owner files via myTax Portal (CorpPass) or their accounting
+4. **No invented precision.** No fabricated confidence bands or percentages.
+5. **You cannot file the F5.** The owner files via myTax Portal (CorpPass) or their accounting
    product. You prepare the figures; a human submits them. Say this every time.
 
 ## 6. Output
