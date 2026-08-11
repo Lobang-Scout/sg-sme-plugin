@@ -41,7 +41,8 @@ until it lands.
 | **Invoice terms** | whatever was agreed, minus the customer's actual habits |
 
 **Do not assert a settlement window you have not been told.** If the rail matters to the answer,
-ask, or state the assumption and flag it.
+ask, or state the assumption and flag it. A cell in a spreadsheet asserts a window just as firmly
+as a sentence does.
 
 ## 3. Reading receivables honestly
 
@@ -74,7 +75,13 @@ These exist because measured runs failed without them.
 4. **Flag unknowns rather than filling them.** Missing rail, unclear date, ambiguous category. An
    owner can resolve these in a minute; a wrong guess costs more.
 5. **State the period covered and the date of the data.** A snapshot without a date is unusable a
-   week later.
+   week later. Check the first and last date actually present in the input. A truncated month
+   read as a full one overstates every figure derived from it.
+6. **Your guardrails apply to everything you produce, not only to chat.** In testing, a generated
+   XLSX asserted a settlement window this skill forbids, and contradicted three other places in
+   the same deliverable. Before handing over a spreadsheet or document, read it back against
+   these rules as if it were an answer you had typed. A guardrail that holds in prose and breaks
+   in a file has not held.
 
 ## 6. Output
 
