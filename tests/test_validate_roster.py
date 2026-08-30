@@ -28,6 +28,7 @@ def staff(name: str, **kw) -> vr.Staff:
         ot_this_month=0.0,
         last_rest_day=None,
         unavailable=set(),
+        fit_until=None,
     )
     return vr.Staff(name=name, **{**defaults, **kw})
 
@@ -267,6 +268,107 @@ class PartFourCoverage(unittest.TestCase):
         r = roster([staff("A", part_iv="unknown")], [shift("S", "2026-08-25", "0700", "1900")], [("S", "A")])
         found = by_rule(vr.check(r), "COVERAGE_UNKNOWN")
         self.assertEqual(found[0].severity, vr.WARN)
+
+
+class HoursOfWorkExcludeBreaks(unittest.TestCase):
+    """MOM: hours of work "does not include any intervals allowed for rest, tea
+    breaks and meals". A tool measuring start-to-end overstates them."""
+
+    def test_a_break_is_not_hours_of_work(self):
+        self.assertEqual(shift("S", "2026-08-25", "0700", "1900", unpaid_break_hours=1.0).hours, 11.0)
+
+    def test_the_span_is_still_available_unchanged(self):
+        self.assertEqual(shift("S", "2026-08-25", "0700", "1900", unpaid_break_hours=1.0).span_hours, 12.0)
+
+    def test_a_thirteen_hour_span_with_a_break_clears_the_daily_cap(self):
+        """The boundary case: refused without the break, allowed with it."""
+        sh = shift("S", "2026-08-25", "0700", "2000", unpaid_break_hours=1.0)
+        r = roster([staff("A")], [sh], [("S", "A")])
+        self.assertNotIn("DAILY_MAX", rules(vr.check(r)))
+
+    def test_the_same_shift_without_the_break_is_refused(self):
+        sh = shift("S", "2026-08-25", "0700", "2000")
+        r = roster([staff("A")], [sh], [("S", "A")])
+        self.assertIn("DAILY_MAX", rules(vr.check(r)))
+
+    def test_an_overnight_break_is_split_across_both_days(self):
+        sh = shift("S", "2026-08-25", "1900", "0700", unpaid_break_hours=2.0)
+        by_day = sh.hours_by_calendar_day()
+        self.assertAlmostEqual(sum(by_day.values()), 10.0)
+        self.assertEqual(len(by_day), 2)
+
+    def test_a_break_longer_than_the_shift_floors_at_zero(self):
+        self.assertEqual(shift("S", "2026-08-25", "0700", "0800", unpaid_break_hours=5.0).hours, 0.0)
+
+    def test_breaks_reduce_the_weekly_overtime_figure(self):
+        shifts = [shift(f"S{i}", f"2026-08-{24 + i}", "0700", "1900", unpaid_break_hours=1.0)
+                  for i in range(4)]
+        r = roster([staff("A")], shifts, [(s.shift_id, "A") for s in shifts])
+        self.assertNotIn("OVERTIME_DUE", rules(vr.check(r)))  # 44h exactly, not 48
+
+
+class CertificatesWithAChoice(unittest.TestCase):
+    """A site requirement is not always one certificate."""
+
+    def test_either_alternative_satisfies_the_requirement(self):
+        sh = shift("S", "2026-08-25", "0700", "1900", requires_certs={"counter-terror|threat-obs"})
+        for held in ({"counter-terror"}, {"threat-obs"}):
+            r = roster([staff("A", certs=held)], [sh], [("S", "A")])
+            self.assertNotIn("CERT", rules(vr.check(r)), held)
+
+    def test_holding_neither_alternative_blocks(self):
+        sh = shift("S", "2026-08-25", "0700", "1900", requires_certs={"counter-terror|threat-obs"})
+        r = roster([staff("A", certs={"first-aid"})], [sh], [("S", "A")])
+        self.assertIn("CERT", rules(vr.check(r)))
+
+    def test_the_message_spells_out_the_choice(self):
+        sh = shift("S", "2026-08-25", "0700", "1900", requires_certs={"counter-terror|threat-obs"})
+        r = roster([staff("A")], [sh], [("S", "A")])
+        self.assertIn("counter-terror or threat-obs", by_rule(vr.check(r), "CERT")[0].detail)
+
+    def test_a_choice_and_a_fixed_requirement_together(self):
+        """Protected areas: either counter-terrorism cert, AND the sites one."""
+        sh = shift("S", "2026-08-25", "0700", "1900",
+                   requires_certs={"counter-terror|threat-obs", "protected-areas"})
+        r = roster([staff("A", certs={"threat-obs"})], [sh], [("S", "A")])
+        self.assertIn("protected-areas", by_rule(vr.check(r), "CERT")[0].detail)
+
+    def test_a_plain_requirement_still_behaves_as_before(self):
+        sh = shift("S", "2026-08-25", "0700", "1900", requires_certs={"x-ray"})
+        r = roster([staff("A", certs={"x-ray"})], [sh], [("S", "A")])
+        self.assertNotIn("CERT", rules(vr.check(r)))
+
+
+class FitnessThatExpires(unittest.TestCase):
+    """Held UNTIL a date, which is a different shape from held or not."""
+
+    def test_a_lapsed_clearance_blocks(self):
+        r = roster([staff("A", fit_until=date(2026, 8, 24))],
+                   [shift("S", "2026-08-25", "0700", "1900")], [("S", "A")])
+        found = by_rule(vr.check(r), "FITNESS")
+        self.assertEqual(found[0].severity, vr.BLOCK)
+        self.assertIn("2026-08-24", found[0].detail)
+
+    def test_a_clearance_valid_on_the_day_passes(self):
+        r = roster([staff("A", fit_until=date(2026, 8, 25))],
+                   [shift("S", "2026-08-25", "0700", "1900")], [("S", "A")])
+        self.assertNotIn("FITNESS", rules(vr.check(r)))
+
+    def test_no_expiry_recorded_means_no_gate(self):
+        r = roster([staff("A")], [shift("S", "2026-08-25", "0700", "1900")], [("S", "A")])
+        self.assertNotIn("FITNESS", rules(vr.check(r)))
+
+    def test_an_overnight_shift_lapsing_at_midnight_blocks(self):
+        """The shift starts while valid and ends after. Still a lapse."""
+        r = roster([staff("A", fit_until=date(2026, 8, 25))],
+                   [shift("S", "2026-08-25", "1900", "0700")], [("S", "A")])
+        self.assertIn("FITNESS", rules(vr.check(r)))
+
+    def test_an_unfit_officer_is_not_offered_as_cover(self):
+        sh = shift("S", "2026-08-25", "0700", "1900")
+        r = roster([staff("Lapsed", fit_until=date(2026, 8, 1)), staff("Clear")], [sh], [])
+        eligible = [c.name for c in vr.cover(r, "S", None) if c.eligible]
+        self.assertEqual(eligible, ["Clear"])
 
 
 class HeadcountAndTurnaround(unittest.TestCase):

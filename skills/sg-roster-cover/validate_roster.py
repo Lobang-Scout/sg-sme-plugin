@@ -83,6 +83,7 @@ class Staff:
     ot_this_month: float
     last_rest_day: date | None
     unavailable: set[str]  # ISO dates and lowercase weekday names
+    fit_until: date | None = None  # deployment fitness expiry, if one applies
 
     @property
     def covered(self) -> bool:
@@ -105,6 +106,7 @@ class Shift:
     requires_grade: str
     requires_certs: set[str]
     headcount: int
+    unpaid_break_hours: float = 0.0
 
     @property
     def start_dt(self) -> datetime:
@@ -118,14 +120,33 @@ class Shift:
         return end
 
     @property
-    def hours(self) -> float:
+    def span_hours(self) -> float:
+        """Clock time from start to end, breaks included."""
         return (self.end_dt - self.start_dt).total_seconds() / 3600.0
+
+    @property
+    def hours(self) -> float:
+        """HOURS OF WORK, which is not the same as the shift's span.
+
+        MOM: "the period during which employees are expected to carry out the
+        duties assigned by their employers. It does not include any intervals
+        allowed for rest, tea breaks and meals."
+
+        So a 12-hour shift with an hour of breaks is 11 hours of work, and a
+        tool computing hours from start and end times OVERSTATES them. That
+        matters at the boundary: it is the difference between a roster the
+        checker refuses and one it passes.
+        """
+        return max(0.0, self.span_hours - self.unpaid_break_hours)
 
     def hours_by_calendar_day(self) -> dict[date, float]:
         """Split an overnight shift across the two days it actually touches.
 
         The daily cap is a cap on a calendar day, so a 2200-0600 shift is not
-        eight hours on one day.
+        eight hours on one day. Breaks are deducted in proportion to each day's
+        share of the span: without the roster saying WHEN the meal break falls,
+        proportional is the honest split, and assuming it all lands on one day
+        would be inventing a fact.
         """
         out: dict[date, float] = defaultdict(float)
         cursor = self.start_dt
@@ -134,6 +155,9 @@ class Shift:
             chunk_end = min(midnight, self.end_dt)
             out[cursor.date()] += (chunk_end - cursor).total_seconds() / 3600.0
             cursor = chunk_end
+        if self.unpaid_break_hours and self.span_hours:
+            share = self.hours / self.span_hours
+            out = {day: hrs * share for day, hrs in out.items()}
         return dict(out)
 
     def __str__(self) -> str:
@@ -313,6 +337,7 @@ def load_staff(path: Path) -> dict[str, Staff]:
             ot_this_month=_parse_float(row.get("ot_this_month", ""), f"{name} ot_this_month"),
             last_rest_day=_parse_date(row.get("last_rest_day", "")),
             unavailable=_parse_unavailable(row.get("unavailable", "")),
+            fit_until=_parse_date(row.get("fit_until", "")),
         )
     return out
 
@@ -337,6 +362,8 @@ def load_shifts(path: Path) -> dict[str, Shift]:
             requires_grade=row.get("requires_grade", "").strip().lower(),
             requires_certs=_parse_set(row.get("requires_certs", "")),
             headcount=_parse_headcount(row.get("headcount", "")),
+            unpaid_break_hours=_parse_float(
+                row.get("unpaid_break_hours", ""), f"{sid} unpaid_break_hours"),
         )
     return out
 
@@ -365,10 +392,22 @@ def load_grades(path: Path | None) -> dict[str, int]:
 # `check` reports, so the two modes can never drift apart.
 
 
+def _describe(requirement: str) -> str:
+    return " or ".join(sorted(requirement.split("|")))
+
+
 def gate_cert(r: Roster, s: Staff, shift: Shift) -> str | None:
-    missing = shift.requires_certs - s.certs
+    """Each requirement is satisfied by ANY one of its alternatives.
+
+    A site requirement is not always a single certificate. Singapore's protected
+    areas, for instance, accept "Handle Counter-Terrorism Activities" OR "Threat
+    Observation" alongside a second certificate that has no alternative. Testing
+    the officer's certificates as a superset of a flat list gets that wrong in
+    the expensive direction: it rules out someone who is qualified.
+    """
+    missing = [req for req in shift.requires_certs if not (set(req.split("|")) & s.certs)]
     if missing:
-        return f"missing required cert(s): {', '.join(sorted(missing))}"
+        return "missing required cert(s): " + ", ".join(sorted(_describe(m) for m in missing))
     return None
 
 
@@ -385,6 +424,22 @@ def gate_grade(r: Roster, s: Staff, shift: Shift) -> str | None:
     if have_rank is None:
         return f"grade {s.grade or 'unset'} is not in grades.csv"
     return None if have_rank >= need_rank else f"grade {s.grade} ranks below required {need}"
+
+
+def gate_fitness(r: Roster, s: Staff, shift: Shift) -> str | None:
+    """A clearance that expires bars deployment from the day it lapses.
+
+    Different in shape from a certificate: a certificate is held or not, this is
+    held UNTIL a date. Singapore requires officers over 60 to be certified
+    medically fit before deployment and annually thereafter, which is exactly
+    this. An expiry that nothing checks is a gate that silently stops existing.
+    """
+    if s.fit_until is None:
+        return None
+    for day in shift.hours_by_calendar_day():
+        if day > s.fit_until:
+            return f"deployment fitness lapsed on {s.fit_until.isoformat()}"
+    return None
 
 
 def gate_available(r: Roster, s: Staff, shift: Shift) -> str | None:
@@ -455,6 +510,7 @@ def gate_rest_interval(r: Roster, s: Staff, shift: Shift) -> str | None:
 HARD_GATES = (
     ("CERT", gate_cert, "site or client requirement"),
     ("GRADE", gate_grade, "site or client requirement"),
+    ("FITNESS", gate_fitness, "clearance that expires"),
     ("UNAVAILABLE", gate_available, "declared availability"),
     ("OVERLAP", gate_overlap, "cannot be in two places"),
     ("DAILY_MAX", gate_daily_max, "Employment Act Part IV s38(5)"),
