@@ -1,7 +1,7 @@
-shift_id,date,site,start,end,requires_grade,requires_certs,headcount
-S01,2026-08-25,Tampines Mall,0700,1900,officer,first-aid;x-ray,1
-S02,2026-08-25,Tampines Mall,1900,0700,officer,first-aid,1
-S03,2026-08-26,Tampines Mall,0700,1900,officer,first-aid;x-ray,1
-S04,2026-08-26,Tampines Mall,1900,0700,officer,first-aid,1
-S05,2026-08-27,Tampines Mall,0700,1900,senior,first-aid;x-ray,1
-S06,2026-08-27,Tampines Mall,1900,0700,officer,first-aid,1
+shift_id,date,site,start,end,requires_grade,requires_certs,headcount,unpaid_break_hours
+S01,2026-08-25,Tampines Mall,0700,1900,officer,first-aid;x-ray,1,1
+S02,2026-08-25,Tampines Mall,1900,0700,officer,first-aid,1,1
+S03,2026-08-26,Tampines Mall,0700,1900,officer,first-aid;x-ray,1,1
+S04,2026-08-26,Tampines Mall,1900,0700,officer,first-aid,1,1
+S05,2026-08-27,Tampines Mall,0700,1900,senior,first-aid;x-ray,1,1
+S06,2026-08-27,Tampines Mall,1900,0700,officer,first-aid,1,1

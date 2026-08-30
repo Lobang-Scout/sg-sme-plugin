@@ -46,7 +46,7 @@ self-reports when it may be out of date (see **Freshness** below).
   language model asked to hold a dozen numeric constraints across twenty people will produce one
   that looks right and quietly breaks a rest day. Takes the spreadsheet as the owner keeps it:
   dd/mm/yyyy dates, times missing their leading zero, a headcount Excel wrote as `2.0`, a name
-  spelled two ways across two files. 85 tests, stdlib `unittest`, run with
+  spelled two ways across two files. 114 tests, stdlib `unittest`, run with
   `python3 -m unittest discover -s tests`.
 - **.mcp.json** — three connectors:
   - the official **Xero** connector (live-confirmed to return SGD + GST 9% from an SG org);

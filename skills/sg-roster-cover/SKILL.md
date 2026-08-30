@@ -49,11 +49,46 @@ are in `templates/`.
 | `ot_this_month` | overtime hours already worked this calendar month |
 | `last_rest_day` | the last date they had a whole day off |
 | `unavailable` | semicolon separated dates (`2026-08-27`) or weekday names (`sun`) |
+| `fit_until` | optional. A clearance that expires: the last date this person may be deployed. Blank means none applies |
 
 **shifts.csv**: `shift_id`, `date`, `site`, `start`, `end` (HHMM, an `end` at or before `start`
-means it crosses midnight), `requires_grade`, `requires_certs`, `headcount`.
+means it crosses midnight), `requires_grade`, `requires_certs`, `headcount`,
+`unpaid_break_hours` (optional).
+
+**A shift's span is not its hours of work.** MOM defines hours of work as the period the employee
+carries out duties, and it *"does not include any intervals allowed for rest, tea breaks and
+meals"*. So a 12-hour shift with an hour of breaks is **11 hours of work**, and a checker
+measuring start-to-end overstates every figure derived from it. Put the break in
+`unpaid_break_hours` and the daily cap, the weekly total and the overtime figure all follow. Leave
+it blank and the checker is conservative rather than wrong, but it will refuse rosters that are
+actually legal.
+
+**A certificate requirement can offer a choice.** Separate alternatives with `|` inside one
+requirement: `counter-terror|threat-obs` means either satisfies it. Requirements are still
+separated by `;`, so `counter-terror|threat-obs;protected-areas` means *(either of the first two)*
+**and** *the third*. Real sites need this: Singapore's protected areas accept one of two
+counter-terrorism certificates alongside a second that has no alternative. Testing an officer's
+certificates as a flat superset rules out people who are qualified.
 
 **roster.csv**: `shift_id`, `name`. One row per assignment.
+
+**rules.csv** (optional): `rule`, `basis`. Declares a limit that binds **this business regardless
+of Part IV coverage**, and says on whose authority.
+
+```csv
+rule,basis
+OT_MONTHLY,PRD licensing condition 5d (security agencies)
+```
+
+Use it when a sector is outside Part IV but still regulated. Singapore's Progressive Wage Model
+took full-time outsourced security officers past the Part IV salary threshold on 1 January 2024,
+and the same day a licensing condition took over the 72-hour monthly cap. Without this file the
+checker would report that as a warning, which understates a real obligation and invites an owner
+to roster past it.
+
+The basis is required, not decorative. An owner told a limit binds should be able to see who says
+so, and a rule with no attribution is not a rule. Where Part IV *does* cover the person, the Act
+stays the authority and the local rule is not needed.
 
 **grades.csv** (optional): `grade`, `rank`. Ascending, so a senior can cover an officer shift. If
 this file is absent the grade must match exactly, which is stricter than most owners intend. Say
@@ -77,8 +112,9 @@ Certification and grade come from the site contract. The rest are Employment Act
 
 | Rule | Limit | Source |
 |---|---|---|
-| Certification | must hold every cert the site requires | site or client contract |
+| Certification | must satisfy every requirement the site sets, where a requirement may offer alternatives | site or client contract |
 | Grade | must meet or exceed the grade the site is contracted for | site or client contract |
+| Deployment fitness | where a clearance expires, the shift must fall on or before `fit_until` | sector rule or company policy |
 | Hours in a day | **12 hours**, including overtime | s38(5) |
 | Normal hours in a week | **44 hours**. Beyond this is overtime, payable at **at least 1.5x** | s38(1), s38(4) |
 | Overtime in a month | **72 hours** | s38(5) |

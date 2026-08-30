@@ -83,6 +83,7 @@ class Staff:
     ot_this_month: float
     last_rest_day: date | None
     unavailable: set[str]  # ISO dates and lowercase weekday names
+    fit_until: date | None = None  # deployment fitness expiry, if one applies
 
     @property
     def covered(self) -> bool:
@@ -105,6 +106,7 @@ class Shift:
     requires_grade: str
     requires_certs: set[str]
     headcount: int
+    unpaid_break_hours: float = 0.0
 
     @property
     def start_dt(self) -> datetime:
@@ -118,14 +120,33 @@ class Shift:
         return end
 
     @property
-    def hours(self) -> float:
+    def span_hours(self) -> float:
+        """Clock time from start to end, breaks included."""
         return (self.end_dt - self.start_dt).total_seconds() / 3600.0
+
+    @property
+    def hours(self) -> float:
+        """HOURS OF WORK, which is not the same as the shift's span.
+
+        MOM: "the period during which employees are expected to carry out the
+        duties assigned by their employers. It does not include any intervals
+        allowed for rest, tea breaks and meals."
+
+        So a 12-hour shift with an hour of breaks is 11 hours of work, and a
+        tool computing hours from start and end times OVERSTATES them. That
+        matters at the boundary: it is the difference between a roster the
+        checker refuses and one it passes.
+        """
+        return max(0.0, self.span_hours - self.unpaid_break_hours)
 
     def hours_by_calendar_day(self) -> dict[date, float]:
         """Split an overnight shift across the two days it actually touches.
 
         The daily cap is a cap on a calendar day, so a 2200-0600 shift is not
-        eight hours on one day.
+        eight hours on one day. Breaks are deducted in proportion to each day's
+        share of the span: without the roster saying WHEN the meal break falls,
+        proportional is the honest split, and assuming it all lands on one day
+        would be inventing a fact.
         """
         out: dict[date, float] = defaultdict(float)
         cursor = self.start_dt
@@ -134,6 +155,9 @@ class Shift:
             chunk_end = min(midnight, self.end_dt)
             out[cursor.date()] += (chunk_end - cursor).total_seconds() / 3600.0
             cursor = chunk_end
+        if self.unpaid_break_hours and self.span_hours:
+            share = self.hours / self.span_hours
+            out = {day: hrs * share for day, hrs in out.items()}
         return dict(out)
 
     def __str__(self) -> str:
@@ -151,6 +175,8 @@ class Roster:
     grade_rank: dict[str, int] = field(default_factory=dict)
     week_start: int = 0  # Monday
     min_turnaround: float = DEFAULT_MIN_TURNAROUND_HOURS
+    # Rules that bind beyond Part IV, declared by the business. See rules.csv.
+    local_rules: dict[str, str] = field(default_factory=dict)
 
     def shifts_for(self, name: str, excluding: str | None = None) -> list[Shift]:
         return sorted(
@@ -313,6 +339,7 @@ def load_staff(path: Path) -> dict[str, Staff]:
             ot_this_month=_parse_float(row.get("ot_this_month", ""), f"{name} ot_this_month"),
             last_rest_day=_parse_date(row.get("last_rest_day", "")),
             unavailable=_parse_unavailable(row.get("unavailable", "")),
+            fit_until=_parse_date(row.get("fit_until", "")),
         )
     return out
 
@@ -337,6 +364,8 @@ def load_shifts(path: Path) -> dict[str, Shift]:
             requires_grade=row.get("requires_grade", "").strip().lower(),
             requires_certs=_parse_set(row.get("requires_certs", "")),
             headcount=_parse_headcount(row.get("headcount", "")),
+            unpaid_break_hours=_parse_float(
+                row.get("unpaid_break_hours", ""), f"{sid} unpaid_break_hours"),
         )
     return out
 
@@ -347,6 +376,30 @@ def load_assignments(path: Path) -> list[tuple[str, str]]:
         for row in _read_csv(path, {"shift_id", "name"})
         if row["shift_id"].strip() and row["name"].strip()
     ]
+
+
+def load_local_rules(path: Path | None) -> dict[str, str]:
+    """Optional rules.csv: `rule,basis`.
+
+    Declares a limit that binds this business regardless of Part IV coverage,
+    and says on whose authority. A licensing condition, a client SLA, a
+    collective agreement. Naming the basis is the point: an owner told a limit
+    binds should be able to see who says so.
+    """
+    if path is None or not path.exists():
+        return {}
+    out = {}
+    for row in _read_csv(path, {"rule", "basis"}):
+        rule, basis = row["rule"].strip().upper(), row["basis"].strip()
+        if not rule:
+            continue
+        known = {name for name, _, _ in HARD_GATES} | {"NO_REST_DAY", "OVERTIME_DUE"}
+        if rule not in known:
+            raise ValueError(f"rules.csv names an unknown rule {rule!r}; known: {', '.join(sorted(known))}")
+        if not basis:
+            raise ValueError(f"rules.csv gives no basis for {rule!r}; an unattributed rule is not a rule")
+        out[rule] = basis
+    return out
 
 
 def load_grades(path: Path | None) -> dict[str, int]:
@@ -365,10 +418,22 @@ def load_grades(path: Path | None) -> dict[str, int]:
 # `check` reports, so the two modes can never drift apart.
 
 
+def _describe(requirement: str) -> str:
+    return " or ".join(sorted(requirement.split("|")))
+
+
 def gate_cert(r: Roster, s: Staff, shift: Shift) -> str | None:
-    missing = shift.requires_certs - s.certs
+    """Each requirement is satisfied by ANY one of its alternatives.
+
+    A site requirement is not always a single certificate. Singapore's protected
+    areas, for instance, accept "Handle Counter-Terrorism Activities" OR "Threat
+    Observation" alongside a second certificate that has no alternative. Testing
+    the officer's certificates as a superset of a flat list gets that wrong in
+    the expensive direction: it rules out someone who is qualified.
+    """
+    missing = [req for req in shift.requires_certs if not (set(req.split("|")) & s.certs)]
     if missing:
-        return f"missing required cert(s): {', '.join(sorted(missing))}"
+        return "missing required cert(s): " + ", ".join(sorted(_describe(m) for m in missing))
     return None
 
 
@@ -385,6 +450,22 @@ def gate_grade(r: Roster, s: Staff, shift: Shift) -> str | None:
     if have_rank is None:
         return f"grade {s.grade or 'unset'} is not in grades.csv"
     return None if have_rank >= need_rank else f"grade {s.grade} ranks below required {need}"
+
+
+def gate_fitness(r: Roster, s: Staff, shift: Shift) -> str | None:
+    """A clearance that expires bars deployment from the day it lapses.
+
+    Different in shape from a certificate: a certificate is held or not, this is
+    held UNTIL a date. Singapore requires officers over 60 to be certified
+    medically fit before deployment and annually thereafter, which is exactly
+    this. An expiry that nothing checks is a gate that silently stops existing.
+    """
+    if s.fit_until is None:
+        return None
+    for day in shift.hours_by_calendar_day():
+        if day > s.fit_until:
+            return f"deployment fitness lapsed on {s.fit_until.isoformat()}"
+    return None
 
 
 def gate_available(r: Roster, s: Staff, shift: Shift) -> str | None:
@@ -455,6 +536,7 @@ def gate_rest_interval(r: Roster, s: Staff, shift: Shift) -> str | None:
 HARD_GATES = (
     ("CERT", gate_cert, "site or client requirement"),
     ("GRADE", gate_grade, "site or client requirement"),
+    ("FITNESS", gate_fitness, "clearance that expires"),
     ("UNAVAILABLE", gate_available, "declared availability"),
     ("OVERLAP", gate_overlap, "cannot be in two places"),
     ("DAILY_MAX", gate_daily_max, "Employment Act Part IV s38(5)"),
@@ -466,7 +548,7 @@ HARD_GATES = (
 # anyone above the salary thresholds. The gates still compute the breach for
 # everyone, because an owner should see a 14-hour day either way. Coverage
 # decides whether it blocks the roster or is merely reported.
-STATUTORY_RULES = frozenset({"DAILY_MAX", "OT_MONTHLY", "REST_INTERVAL"})
+STATUTORY_RULES = frozenset({"DAILY_MAX", "OT_MONTHLY", "REST_INTERVAL", "NO_REST_DAY"})
 
 
 # What to say instead of citing an Act at someone it does not cover. Naming the
@@ -475,11 +557,26 @@ STATUTORY_RULES = frozenset({"DAILY_MAX", "OT_MONTHLY", "REST_INTERVAL"})
 NO_STATUTORY_BASIS = "outside Part IV; a contract or sector rule, not this Act"
 
 
-def severity_for(rule: str, person: Staff) -> str:
+def severity_for(rule: str, person: Staff, local_rules: dict[str, str] | None = None) -> str:
+    """A limit binds if Part IV covers the person, OR the business says it binds.
+
+    The second half exists because a sector can be pushed out of Part IV and
+    still be regulated. Singapore's PWM took full-time outsourced security
+    officers past the Part IV salary threshold on 1 January 2024, and the same
+    day a licensing condition took over the 72-hour monthly cap. Reporting that
+    as a warning would be wrong twice: it understates a real obligation, and it
+    invites an owner to roster past it.
+    """
+    if (local_rules or {}).get(rule):
+        return BLOCK
     return WARN if rule in STATUTORY_RULES and not person.covered else BLOCK
 
 
-def basis_for(rule: str, basis: str, person: Staff) -> str:
+def basis_for(rule: str, basis: str, person: Staff,
+              local_rules: dict[str, str] | None = None) -> str:
+    declared = (local_rules or {}).get(rule)
+    if declared and not (rule in STATUTORY_RULES and person.covered):
+        return declared
     if rule in STATUTORY_RULES and not person.covered:
         return NO_STATUTORY_BASIS
     return basis
@@ -524,7 +621,9 @@ def check(r: Roster) -> list[Finding]:
         shift, person = r.shifts[sid], r.staff[name]
         for rule, reason, basis in failed_gates(r, person, shift):
             findings.append(Finding(
-                rule, severity_for(rule, person), basis_for(rule, basis, person),
+                rule,
+                severity_for(rule, person, r.local_rules),
+                basis_for(rule, basis, person, r.local_rules),
                 name, f"{shift}: {reason}",
             ))
 
@@ -594,8 +693,8 @@ def _check_weekly(r: Roster) -> list[Finding]:
             out.append(
                 Finding(
                     "NO_REST_DAY",
-                    BLOCK if person.covered else INFO,
-                    "Employment Act Part IV s36(1)" if person.covered else NO_STATUTORY_BASIS,
+                    BLOCK if (person.covered or r.local_rules.get("NO_REST_DAY")) else INFO,
+                    basis_for("NO_REST_DAY", "Employment Act Part IV s36(1)", person, r.local_rules),
                     name,
                     f"week of {week.isoformat()}: rostered all 7 days, no rest day",
                 )
@@ -655,7 +754,7 @@ def cover(r: Roster, shift_id: str, absent: str | None) -> list[Candidate]:
         if name == absent or name in already:
             continue
         fails = failed_gates(pool, person, shift)
-        blocking = [f for f in fails if severity_for(f[0], person) == BLOCK]
+        blocking = [f for f in fails if severity_for(f[0], person, r.local_rules) == BLOCK]
         advisory = [f for f in fails if f not in blocking]
         week_hours = pool.week_hours(name, pool.week_of(shift.day))
         ot_added = max(0.0, week_hours + shift.hours - NORMAL_HOURS_PER_WEEK) - max(
@@ -732,6 +831,7 @@ def build_roster(args: argparse.Namespace) -> Roster:
         shifts=load_shifts(base / "shifts.csv"),
         assignments=load_assignments(base / "roster.csv"),
         grade_rank=load_grades(base / "grades.csv"),
+        local_rules=load_local_rules(base / "rules.csv"),
         week_start=WEEKDAYS.index(args.week_start.lower()),
         min_turnaround=args.min_turnaround,
     )
