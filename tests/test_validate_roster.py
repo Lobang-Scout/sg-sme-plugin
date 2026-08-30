@@ -228,9 +228,40 @@ class PartFourCoverage(unittest.TestCase):
         self.assertIn("contract", by_rule(found, "LONG_WEEK")[0].detail)
 
     def test_uncovered_staff_can_be_rostered_all_seven_days(self):
+        """Reported, but it must not block: no rest day is owed to them by this Act."""
         shifts = [shift(f"S{i}", f"2026-08-{24 + i}", "0900", "1200") for i in range(7)]
         r = roster([staff("M", part_iv="no")], shifts, [(s.shift_id, "M") for s in shifts])
-        self.assertNotIn("NO_REST_DAY", rules(vr.check(r)))
+        found = by_rule(vr.check(r), "NO_REST_DAY")
+        self.assertEqual(found[0].severity, vr.INFO)
+
+    def test_seven_days_straight_is_still_surfaced_for_uncovered_staff(self):
+        """Silently skipping it left an owner with no sight of it at all."""
+        shifts = [shift(f"S{i}", f"2026-08-{24 + i}", "0900", "1200") for i in range(7)]
+        r = roster([staff("M", part_iv="no")], shifts, [(s.shift_id, "M") for s in shifts])
+        self.assertIn("NO_REST_DAY", rules(vr.check(r)))
+
+    def test_no_finding_cites_an_act_at_someone_it_does_not_cover(self):
+        """The correction that matters: a wrong law is worse than no law."""
+        a = shift("S1", "2026-08-25", "0700", "1900")
+        b = shift("S2", "2026-08-25", "1900", "2000")
+        shifts = [a, b] + [shift(f"S{i}", f"2026-08-{26 + i}", "0900", "1200") for i in range(6)]
+        r = roster([staff("M", part_iv="no", ot_this_month=70.0, last_rest_day=date(2026, 8, 1))],
+                   shifts, [(s.shift_id, "M") for s in shifts])
+        for finding in vr.check(r):
+            self.assertNotIn("Employment Act", finding.basis, finding.rule)
+
+    def test_a_covered_person_still_gets_the_act_cited(self):
+        a = shift("S1", "2026-08-25", "0700", "1900")
+        b = shift("S2", "2026-08-25", "1900", "2000")
+        r = roster([staff("A")], [a, b], [("S1", "A"), ("S2", "A")])
+        self.assertIn("Employment Act", by_rule(vr.check(r), "DAILY_MAX")[0].basis)
+
+    def test_the_uncovered_basis_says_where_the_rule_would_come_from(self):
+        a = shift("S1", "2026-08-25", "0700", "1900")
+        b = shift("S2", "2026-08-25", "1900", "2000")
+        r = roster([staff("M", part_iv="no")], [a, b], [("S1", "M"), ("S2", "M")])
+        basis = by_rule(vr.check(r), "DAILY_MAX")[0].basis
+        self.assertIn("contract or sector rule", basis)
 
     def test_unknown_coverage_is_surfaced_rather_than_assumed(self):
         r = roster([staff("A", part_iv="unknown")], [shift("S", "2026-08-25", "0700", "1900")], [("S", "A")])

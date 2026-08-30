@@ -85,6 +85,12 @@ Certification and grade come from the site contract. The rest are Employment Act
 | Rest days | **one per week**, a whole day, unpaid, employer picks the day | s36(1) |
 | Longest gap between rest days | **12 days** | s36(2) |
 
+**The week boundary is a setting, not a constant.** `--week-start` defaults to Monday, and the
+rule that actually binds may count differently: a licence condition capping extra hours may
+define its week as seven days from midnight on Sunday. Counting the same hours against the wrong
+week gives a different answer at the boundary, so set it to whatever the binding rule uses
+(`--week-start sun`) rather than to whatever the payroll week is.
+
 Two things the checker deliberately does not model, because modelling them would assert more
 precision than the input supports:
 
@@ -104,6 +110,17 @@ This matters both ways and both ways are easy to get wrong:
 
 - Applying the caps to a manager invents a constraint and makes the roster harder than it is.
 - Not applying them to a covered officer is a real breach.
+
+**When someone is outside Part IV, the checker still reports the breach but changes what it
+says the breach is against.** It will not print "Employment Act s38(5)" beside a limit that does
+not bind that person. Naming the wrong law is worse than naming none: it tells an owner a limit
+is legally binding when it is not, and a refusal built on it has nothing behind it.
+
+**Whole sectors can sit outside Part IV.** Singapore's Progressive Wage Model took full-time
+outsourced security officers' basic wages past $2,600 on 1 January 2024, so Part IV stopped
+covering them. What binds them instead is a licensing condition on their agency, not this Act.
+If the business is in a licensed sector, ask what its licence says about hours before assuming
+the Employment Act answers the question.
 
 The `part_iv` column decides it per person. Where it is `unknown`, the checker reports that it did
 not apply the caps to that person rather than guessing. Surface those rows to the owner and ask.

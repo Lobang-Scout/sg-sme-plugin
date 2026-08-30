@@ -17,8 +17,20 @@ install step.
 Statutory rules implemented here are Employment Act Part IV, which covers
 non-workmen earning $2,600 or less and workmen earning $4,500 or less, and
 does not cover managers or executives. Every row of staff.csv declares its
-own coverage; rows that are not covered get a warning rather than a block,
-because the cap genuinely does not apply to them.
+own coverage.
+
+Coverage changes two things, and the second matters more than it looks. A
+person outside Part IV gets a warning rather than a block, because the cap
+does not apply to them. They also get a DIFFERENT BASIS: the finding must not
+cite an Act at someone it does not cover. Naming the wrong law is worse than
+naming none, because it tells an owner a limit is legally binding when it is
+not, and a tool that then refuses the cover has no ground to stand on.
+
+Whole sectors cross this line. Singapore's Progressive Wage Model took
+full-time outsourced security officers' basic wages past $2,600 on 1 January
+2024, so Part IV stopped covering them; what still binds is a licensing
+condition, not this Act, and it counts its week from midnight on Sunday. Use
+--week-start to match whatever week the binding rule actually uses.
 """
 
 from __future__ import annotations
@@ -457,8 +469,20 @@ HARD_GATES = (
 STATUTORY_RULES = frozenset({"DAILY_MAX", "OT_MONTHLY", "REST_INTERVAL"})
 
 
+# What to say instead of citing an Act at someone it does not cover. Naming the
+# wrong law is worse than naming none: it tells an owner a limit is legally
+# binding when it is not, and the tool then refuses cover it has no basis to refuse.
+NO_STATUTORY_BASIS = "outside Part IV; a contract or sector rule, not this Act"
+
+
 def severity_for(rule: str, person: Staff) -> str:
     return WARN if rule in STATUTORY_RULES and not person.covered else BLOCK
+
+
+def basis_for(rule: str, basis: str, person: Staff) -> str:
+    if rule in STATUTORY_RULES and not person.covered:
+        return NO_STATUTORY_BASIS
+    return basis
 
 
 def failed_gates(r: Roster, s: Staff, shift: Shift) -> list[tuple[str, str, str]]:
@@ -499,7 +523,10 @@ def check(r: Roster) -> list[Finding]:
 
         shift, person = r.shifts[sid], r.staff[name]
         for rule, reason, basis in failed_gates(r, person, shift):
-            findings.append(Finding(rule, severity_for(rule, person), basis, name, f"{shift}: {reason}"))
+            findings.append(Finding(
+                rule, severity_for(rule, person), basis_for(rule, basis, person),
+                name, f"{shift}: {reason}",
+            ))
 
         if person.part_iv == "unknown":
             findings.append(
@@ -563,10 +590,13 @@ def _check_weekly(r: Roster) -> list[Finding]:
 
         worked = {d for s in shifts for d in s.hours_by_calendar_day()}
         week_days = {week + timedelta(days=i) for i in range(7)}
-        if not (week_days - worked) and person.covered:
+        if not (week_days - worked):
             out.append(
                 Finding(
-                    "NO_REST_DAY", BLOCK, "Employment Act Part IV s36(1)", name,
+                    "NO_REST_DAY",
+                    BLOCK if person.covered else INFO,
+                    "Employment Act Part IV s36(1)" if person.covered else NO_STATUTORY_BASIS,
+                    name,
                     f"week of {week.isoformat()}: rostered all 7 days, no rest day",
                 )
             )
