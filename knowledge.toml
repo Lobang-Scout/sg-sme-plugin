@@ -1,0 +1,31 @@
+# What reusable knowledge this repo owns. Aggregated into KNOWLEDGE_INDEX.md by
+#   python3 ~/claude/scripts/sync-knowledge-index.py
+
+repo = "lobang-scout-plugin"
+
+[[artifacts]]
+id = "sg-guardrailed-sme-skills"
+title = "SG-guardrailed SME AI prompts and skills"
+kind = "reference"
+paths = ["RECIPES.md", "prompts/sg-sme-guardrails.md", "skills"]
+summary = """
+5 skills (sg-cash-flow, sg-customer-reply, sg-gst-close, sg-invoicenow, sg-shoebox) plus the
+master guardrail prompt. Backed by a roughly 280-run eval whose finding shapes the guardrails:
+models now get SG GST right unaided, but still fabricate forecast precision and over-promise to
+customers. This is the Route-B evidence base.
+"""
+confidence = "provisional"
+verified = 2026-08-26
+review_after = 2027-02-26
+guarded_by = ["tests"]
+related = ["sg-statutory-facts", "sme-jobs-to-be-done"]
+
+[[artifacts.sources]]
+origin = "personal"
+name = "Own eval, roughly 280 runs; guardrails written from its failure modes"
+retrieved = 2026-08-26
+
+[[artifacts.sources]]
+origin = "derived"
+name = "Statutory content re-sourced from knowledge-base/sg-regulatory, not from work material"
+retrieved = 2026-08-26
