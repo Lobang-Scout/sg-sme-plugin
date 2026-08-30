@@ -175,6 +175,8 @@ class Roster:
     grade_rank: dict[str, int] = field(default_factory=dict)
     week_start: int = 0  # Monday
     min_turnaround: float = DEFAULT_MIN_TURNAROUND_HOURS
+    # Rules that bind beyond Part IV, declared by the business. See rules.csv.
+    local_rules: dict[str, str] = field(default_factory=dict)
 
     def shifts_for(self, name: str, excluding: str | None = None) -> list[Shift]:
         return sorted(
@@ -376,6 +378,30 @@ def load_assignments(path: Path) -> list[tuple[str, str]]:
     ]
 
 
+def load_local_rules(path: Path | None) -> dict[str, str]:
+    """Optional rules.csv: `rule,basis`.
+
+    Declares a limit that binds this business regardless of Part IV coverage,
+    and says on whose authority. A licensing condition, a client SLA, a
+    collective agreement. Naming the basis is the point: an owner told a limit
+    binds should be able to see who says so.
+    """
+    if path is None or not path.exists():
+        return {}
+    out = {}
+    for row in _read_csv(path, {"rule", "basis"}):
+        rule, basis = row["rule"].strip().upper(), row["basis"].strip()
+        if not rule:
+            continue
+        known = {name for name, _, _ in HARD_GATES} | {"NO_REST_DAY", "OVERTIME_DUE"}
+        if rule not in known:
+            raise ValueError(f"rules.csv names an unknown rule {rule!r}; known: {', '.join(sorted(known))}")
+        if not basis:
+            raise ValueError(f"rules.csv gives no basis for {rule!r}; an unattributed rule is not a rule")
+        out[rule] = basis
+    return out
+
+
 def load_grades(path: Path | None) -> dict[str, int]:
     if path is None or not path.exists():
         return {}
@@ -522,7 +548,7 @@ HARD_GATES = (
 # anyone above the salary thresholds. The gates still compute the breach for
 # everyone, because an owner should see a 14-hour day either way. Coverage
 # decides whether it blocks the roster or is merely reported.
-STATUTORY_RULES = frozenset({"DAILY_MAX", "OT_MONTHLY", "REST_INTERVAL"})
+STATUTORY_RULES = frozenset({"DAILY_MAX", "OT_MONTHLY", "REST_INTERVAL", "NO_REST_DAY"})
 
 
 # What to say instead of citing an Act at someone it does not cover. Naming the
@@ -531,11 +557,26 @@ STATUTORY_RULES = frozenset({"DAILY_MAX", "OT_MONTHLY", "REST_INTERVAL"})
 NO_STATUTORY_BASIS = "outside Part IV; a contract or sector rule, not this Act"
 
 
-def severity_for(rule: str, person: Staff) -> str:
+def severity_for(rule: str, person: Staff, local_rules: dict[str, str] | None = None) -> str:
+    """A limit binds if Part IV covers the person, OR the business says it binds.
+
+    The second half exists because a sector can be pushed out of Part IV and
+    still be regulated. Singapore's PWM took full-time outsourced security
+    officers past the Part IV salary threshold on 1 January 2024, and the same
+    day a licensing condition took over the 72-hour monthly cap. Reporting that
+    as a warning would be wrong twice: it understates a real obligation, and it
+    invites an owner to roster past it.
+    """
+    if (local_rules or {}).get(rule):
+        return BLOCK
     return WARN if rule in STATUTORY_RULES and not person.covered else BLOCK
 
 
-def basis_for(rule: str, basis: str, person: Staff) -> str:
+def basis_for(rule: str, basis: str, person: Staff,
+              local_rules: dict[str, str] | None = None) -> str:
+    declared = (local_rules or {}).get(rule)
+    if declared and not (rule in STATUTORY_RULES and person.covered):
+        return declared
     if rule in STATUTORY_RULES and not person.covered:
         return NO_STATUTORY_BASIS
     return basis
@@ -580,7 +621,9 @@ def check(r: Roster) -> list[Finding]:
         shift, person = r.shifts[sid], r.staff[name]
         for rule, reason, basis in failed_gates(r, person, shift):
             findings.append(Finding(
-                rule, severity_for(rule, person), basis_for(rule, basis, person),
+                rule,
+                severity_for(rule, person, r.local_rules),
+                basis_for(rule, basis, person, r.local_rules),
                 name, f"{shift}: {reason}",
             ))
 
@@ -650,8 +693,8 @@ def _check_weekly(r: Roster) -> list[Finding]:
             out.append(
                 Finding(
                     "NO_REST_DAY",
-                    BLOCK if person.covered else INFO,
-                    "Employment Act Part IV s36(1)" if person.covered else NO_STATUTORY_BASIS,
+                    BLOCK if (person.covered or r.local_rules.get("NO_REST_DAY")) else INFO,
+                    basis_for("NO_REST_DAY", "Employment Act Part IV s36(1)", person, r.local_rules),
                     name,
                     f"week of {week.isoformat()}: rostered all 7 days, no rest day",
                 )
@@ -711,7 +754,7 @@ def cover(r: Roster, shift_id: str, absent: str | None) -> list[Candidate]:
         if name == absent or name in already:
             continue
         fails = failed_gates(pool, person, shift)
-        blocking = [f for f in fails if severity_for(f[0], person) == BLOCK]
+        blocking = [f for f in fails if severity_for(f[0], person, r.local_rules) == BLOCK]
         advisory = [f for f in fails if f not in blocking]
         week_hours = pool.week_hours(name, pool.week_of(shift.day))
         ot_added = max(0.0, week_hours + shift.hours - NORMAL_HOURS_PER_WEEK) - max(
@@ -788,6 +831,7 @@ def build_roster(args: argparse.Namespace) -> Roster:
         shifts=load_shifts(base / "shifts.csv"),
         assignments=load_assignments(base / "roster.csv"),
         grade_rank=load_grades(base / "grades.csv"),
+        local_rules=load_local_rules(base / "rules.csv"),
         week_start=WEEKDAYS.index(args.week_start.lower()),
         min_turnaround=args.min_turnaround,
     )

@@ -371,6 +371,96 @@ class FitnessThatExpires(unittest.TestCase):
         self.assertEqual(eligible, ["Clear"])
 
 
+class RulesThatBindBeyondPartIV(unittest.TestCase):
+    """A sector can be pushed out of Part IV and still be regulated.
+
+    Singapore's PWM took full-time outsourced security officers past the Part IV
+    salary threshold on 1 January 2024, and the same day a licensing condition
+    took over the 72-hour monthly cap. Reporting that as a warning understates a
+    real obligation and invites an owner to roster past it.
+    """
+
+    PRD = {"OT_MONTHLY": "PRD licensing condition 5d (security agencies)"}
+
+    def _over_the_cap(self, **staff_kw):
+        shifts = [shift(f"S{i}", f"2026-08-{24 + i}", "0700", "1900") for i in range(5)]
+        return shifts, [(s.shift_id, "A") for s in shifts]
+
+    def test_without_a_declared_rule_an_uncovered_person_only_gets_a_warning(self):
+        shifts, assign = self._over_the_cap()
+        r = roster([staff("A", part_iv="no", ot_this_month=70.0)], shifts, assign)
+        self.assertEqual(by_rule(vr.check(r), "OT_MONTHLY")[0].severity, vr.WARN)
+
+    def test_a_declared_rule_makes_it_block(self):
+        shifts, assign = self._over_the_cap()
+        r = roster([staff("A", part_iv="no", ot_this_month=70.0)], shifts, assign,
+                   local_rules=self.PRD)
+        self.assertEqual(by_rule(vr.check(r), "OT_MONTHLY")[0].severity, vr.BLOCK)
+
+    def test_the_declared_basis_replaces_the_vague_one(self):
+        shifts, assign = self._over_the_cap()
+        r = roster([staff("A", part_iv="no", ot_this_month=70.0)], shifts, assign,
+                   local_rules=self.PRD)
+        self.assertIn("PRD licensing condition", by_rule(vr.check(r), "OT_MONTHLY")[0].basis)
+
+    def test_a_covered_person_still_cites_the_act_not_the_local_rule(self):
+        """Where Part IV does apply, it is the authority; the local rule is not needed."""
+        shifts, assign = self._over_the_cap()
+        r = roster([staff("A", ot_this_month=70.0)], shifts, assign, local_rules=self.PRD)
+        self.assertIn("Employment Act", by_rule(vr.check(r), "OT_MONTHLY")[0].basis)
+
+    def test_an_undeclared_rule_is_untouched(self):
+        a = shift("S1", "2026-08-25", "0700", "1900")
+        b = shift("S2", "2026-08-25", "1900", "2000")
+        r = roster([staff("A", part_iv="no")], [a, b], [("S1", "A"), ("S2", "A")],
+                   local_rules=self.PRD)
+        self.assertEqual(by_rule(vr.check(r), "DAILY_MAX")[0].severity, vr.WARN)
+
+    def test_a_declared_rule_also_rules_someone_out_of_cover(self):
+        target = shift("T", "2026-08-29", "0700", "1900")
+        shifts = [shift(f"S{i}", f"2026-08-{24 + i}", "0700", "1900") for i in range(4)]
+        r = roster([staff("A", part_iv="no", ot_this_month=70.0)], shifts + [target],
+                   [(s.shift_id, "A") for s in shifts], local_rules=self.PRD)
+        self.assertEqual([c.name for c in vr.cover(r, "T", None) if c.eligible], [])
+
+    def test_a_rest_day_rule_can_be_declared_too(self):
+        shifts = [shift(f"S{i}", f"2026-08-{24 + i}", "0900", "1200") for i in range(7)]
+        r = roster([staff("A", part_iv="no")], shifts, [(s.shift_id, "A") for s in shifts],
+                   local_rules={"NO_REST_DAY": "collective agreement, clause 9"})
+        found = by_rule(vr.check(r), "NO_REST_DAY")
+        self.assertEqual(found[0].severity, vr.BLOCK)
+        self.assertIn("clause 9", found[0].basis)
+
+
+class LocalRulesFile(unittest.TestCase):
+    def setUp(self):
+        self.dir = Path(tempfile.mkdtemp())
+
+    def test_a_rule_and_its_basis_load(self):
+        (self.dir / "rules.csv").write_text("rule,basis\nOT_MONTHLY,PRD licensing condition 5d\n")
+        self.assertEqual(vr.load_local_rules(self.dir / "rules.csv"),
+                         {"OT_MONTHLY": "PRD licensing condition 5d"})
+
+    def test_the_file_is_optional(self):
+        self.assertEqual(vr.load_local_rules(self.dir / "rules.csv"), {})
+
+    def test_an_unknown_rule_name_is_rejected(self):
+        (self.dir / "rules.csv").write_text("rule,basis\nMADE_UP,because I said so\n")
+        with self.assertRaises(ValueError) as ctx:
+            vr.load_local_rules(self.dir / "rules.csv")
+        self.assertIn("MADE_UP", str(ctx.exception))
+
+    def test_a_rule_with_no_basis_is_rejected(self):
+        """An unattributed rule is not a rule; the owner must see who says so."""
+        (self.dir / "rules.csv").write_text("rule,basis\nOT_MONTHLY,\n")
+        with self.assertRaises(ValueError):
+            vr.load_local_rules(self.dir / "rules.csv")
+
+    def test_the_rule_name_is_case_insensitive(self):
+        (self.dir / "rules.csv").write_text("rule,basis\not_monthly,a licence condition\n")
+        self.assertIn("OT_MONTHLY", vr.load_local_rules(self.dir / "rules.csv"))
+
+
 class HeadcountAndTurnaround(unittest.TestCase):
     def test_underfilled_shift_blocks(self):
         sh = shift("S", "2026-08-25", "0700", "1900", headcount=2)

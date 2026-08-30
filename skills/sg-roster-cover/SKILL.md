@@ -72,6 +72,24 @@ certificates as a flat superset rules out people who are qualified.
 
 **roster.csv**: `shift_id`, `name`. One row per assignment.
 
+**rules.csv** (optional): `rule`, `basis`. Declares a limit that binds **this business regardless
+of Part IV coverage**, and says on whose authority.
+
+```csv
+rule,basis
+OT_MONTHLY,PRD licensing condition 5d (security agencies)
+```
+
+Use it when a sector is outside Part IV but still regulated. Singapore's Progressive Wage Model
+took full-time outsourced security officers past the Part IV salary threshold on 1 January 2024,
+and the same day a licensing condition took over the 72-hour monthly cap. Without this file the
+checker would report that as a warning, which understates a real obligation and invites an owner
+to roster past it.
+
+The basis is required, not decorative. An owner told a limit binds should be able to see who says
+so, and a rule with no attribution is not a rule. Where Part IV *does* cover the person, the Act
+stays the authority and the local rule is not needed.
+
 **grades.csv** (optional): `grade`, `rank`. Ascending, so a senior can cover an officer shift. If
 this file is absent the grade must match exactly, which is stricter than most owners intend. Say
 so rather than letting them discover it.
