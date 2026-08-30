@@ -52,5 +52,34 @@ Rules:
 - For GrabFood/Shopee/Lazada orders, redirect refunds to the platform's in-app dispute.
 ```
 
+## Someone just called in sick — who covers?
+```
+Someone cannot come in. Find me the best replacement. I'll paste my staff list and this week's roster.
+My staff list has: name, role grade, certificates held, hours already worked this week,
+overtime hours this month, last full day off, and days they cannot work.
+Rules (Singapore Employment Act Part IV — applies to non-workmen paid $2,600 or less
+and workmen paid $4,500 or less; it does NOT apply to managers or executives):
+- Max 12 hours in a calendar day including overtime. Split an overnight shift across BOTH days.
+- Max 44 normal hours a week; anything above is overtime at 1.5x. Max 72 overtime hours a month.
+- One whole rest day a week, and never more than 12 days between rest days.
+- They must hold every certificate the site requires, and meet the grade. No exceptions.
+Do this: list EVERY person, mark each eligible or not, and for the ineligible give the exact rule
+they fail. Then rank the eligible ones least-loaded first and give me ONE recommendation.
+Show your hours arithmetic per person per day before you conclude. Do not guess who is willing
+or who lives nearby — you do not have that. If nobody qualifies, say so instead of relaxing a rule.
+Finish with a short WhatsApp message I can send. Do not tell me you have sent it.
+```
+
+## Build next week's roster
+```
+Build next week's roster. I'll paste my staff list and the shifts I need covered.
+Same Employment Act Part IV rules as above (12h day, 44h week, 72h overtime a month,
+one rest day a week, 12 days max between rest days, certificates and grade must match the site).
+Then CHECK YOUR OWN ROSTER against those rules, one person at a time, and show the table:
+hours per person per calendar day, then per week, then rest days, then certificates.
+Tell me the overtime owed per person as a number I can pay.
+If the roster breaks a rule, tell me that FIRST, before showing me the roster.
+```
+
 ---
 *Built by Lobang Scout, backed by a ~280-run evaluation (re-run mid-2026): as models improve they get SG GST right on their own, but they still fabricate forecast precision and over-promise to customers — these guardrails cut both to near-zero.*

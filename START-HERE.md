@@ -66,6 +66,12 @@ Paste the message. You get a reply ready to send that **promises nothing**, plus
 the decisions only you can make, like whether to offer a refund. You decide, then the line goes
 in.
 
+**"My staff just messaged that he cannot come in today."**
+Paste your staff list and this week's roster, however you keep them. You get a name, not a
+warning that you are short. It checks who actually holds the certificate the site needs, who is
+already near their hours limit, and who is legally due a day off, then hands you a WhatsApp
+message to send. You send it, not the computer.
+
 **"Do I need to do this InvoiceNow thing?"**
 Ask. Every GST-registered business gets caught by 2031, most owners do not know their date, and
 getting set up takes three to twelve months. So the date to act on is a year before your
@@ -80,6 +86,8 @@ Being clear about this up front, because the opposite wastes your afternoon.
   deliberate.
 - **It will not make up a number** it cannot see. If your photo only covers half a month, it says
   so instead of quietly filling the rest.
+- **It will not message your staff.** It writes the roster and the WhatsApp text. Sending it is
+  yours, because putting someone on a shift changes their pay and their day off.
 - **It is not your accountant.** For anything that decides a tax position, confirm with a person
   who is responsible for the answer.
 

@@ -22,7 +22,7 @@ inject fabricated forecast precision.)
 
 ## What's inside
 
-Five skills. The behavioural guardrails are the durable part; the statutory detail is there for
+Six skills. The behavioural guardrails are the durable part; the statutory detail is there for
 the SG edge cases a capable model still gets wrong, and every figure in it is sourced, dated, and
 self-reports when it may be out of date (see **Freshness** below).
 
@@ -37,6 +37,16 @@ self-reports when it may be out of date (see **Freshness** below).
   on is the mandate date minus a year. Never guesses a specific business's date.
 - **skills/sg-cash-flow** — cash-flow snapshot: verify totals, no AP double-counting, no invented confidence bands, SG payment timing (PayNow/NETS).
 - **skills/sg-customer-reply** — complaint drafting: owner-gate every refund/instalment/credit, redirect platform disputes, PDPA-aware.
+- **skills/sg-roster-cover** — build a shift roster by skill and certification, and on an MC or
+  urgent leave produce the *named* best-fit replacement, not a shortfall alert. Enforces
+  Employment Act Part IV (12h day, 44h week, 72h monthly overtime, one rest day a week, 12 days
+  maximum between rest days) and knows Part IV does not cover managers. Ships a stdlib-only
+  `validate_roster.py`: **the model proposes the roster and the script decides**, because a
+  language model asked to hold a dozen numeric constraints across twenty people will produce one
+  that looks right and quietly breaks a rest day. Takes the spreadsheet as the owner keeps it:
+  dd/mm/yyyy dates, times missing their leading zero, a headcount Excel wrote as `2.0`, a name
+  spelled two ways across two files. 81 tests, stdlib `unittest`, run with
+  `python3 -m unittest discover -s tests`.
 - **.mcp.json** — three connectors:
   - the official **Xero** connector (live-confirmed to return SGD + GST 9% from an SG org);
   - **sg-company-lookup** — free ACRA company/UEN lookup ([sg-connectors](https://github.com/Lobang-Scout/sg-connectors));
