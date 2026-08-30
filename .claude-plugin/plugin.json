@@ -1,7 +1,7 @@
 {
   "name": "sg-sme",
-  "description": "Singapore SME guardrails for Claude. Five skills: start from paper or photos when there is no accounting export, GST F5 close, the GST InvoiceNow (Peppol) mandate and its timeline, cash-flow with GST and CPF surfaced, and customer replies that never commit the owner without approval. Plus free ACRA and OneMap lookups and the Xero connector.",
-  "version": "0.2.0",
+  "description": "Singapore SME guardrails for Claude. Six skills: start from paper or photos when there is no accounting export, GST F5 close, the GST InvoiceNow (Peppol) mandate and its timeline, cash-flow with GST and CPF surfaced, customer replies that never commit the owner without approval, and shift rostering with best-fit cover on an MC, checked against Employment Act Part IV. Plus free ACRA and OneMap lookups and the Xero connector.",
+  "version": "0.3.0",
   "author": {
     "name": "Lobang Scout"
   },
@@ -20,6 +20,12 @@
     "accounting",
     "bookkeeping",
     "small-business",
-    "guardrails"
+    "guardrails",
+    "employment-act",
+    "mom",
+    "rostering",
+    "scheduling",
+    "shift-work",
+    "overtime"
   ]
 }

@@ -1,0 +1,7 @@
+name,grade,certs,part_iv,hours_this_week,ot_this_month,last_rest_day,unavailable
+Aisha Rahman,senior,first-aid;x-ray,yes,0,12,2026-08-23,sun
+Ben Tan,senior,first-aid,yes,0,64,2026-08-24,
+Chandra Kumar,officer,first-aid;x-ray,yes,0,4,2026-08-24,2026-08-27
+Devi Nair,officer,,yes,0,0,2026-08-23,
+Eugene Lim,officer,first-aid;x-ray,yes,0,30,2026-08-24,
+Farah Ismail,supervisor,first-aid;x-ray,no,0,0,2026-08-23,
